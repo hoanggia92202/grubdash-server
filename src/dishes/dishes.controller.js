@@ -17,35 +17,40 @@ function hasProperty(validPropertyName){
     }
 }
 
-function propertyNotEmpty() {
-  return function (req, res, next) {
-    const validPropertyName = ["name", "description", "price", "image_url"];
-    const propertyList = req.body.data;
-    validPropertyName.forEach((propName) => {
-      if (!propertyList[propName]) {
-        return next({
-          status: 400,
-          message: `Dish must include a ${propName}`,
-        });
-      }
-    });
-    next();
-  };
-}
-
-function priceLessThanZero() {
-  return function (req, res, next) {
-    const {
-      data: { price },
-    } = req.body;
-    if (price < 0) {
+function propertyNotEmpty(req, res, next) {
+  const validPropertyName = ["name", "description", "price", "image_url"];
+  const propertyList = req.body.data;
+  validPropertyName.forEach((propName) => {
+    if (!propertyList[propName]) {
       return next({
         status: 400,
-        message: `Dish must have a price that is an integer greater than 0`,
+        message: `Dish must include a ${propName}`,
       });
     }
-    next();
-  };
+  });
+  next();
+}
+
+function priceLessThanZero(req, res, next) {
+  const {
+    data: { price },
+  } = req.body;
+  if (price < 0) {
+    return next({
+      status: 400,
+      message: `Dish must have a price that is an integer greater than 0`,
+    });
+  }
+  next();
+}
+
+function checkDishId(req, res, next) {
+  const { dishId } = req.params;
+  const dish = dishes.find((dish) => dish.id === dishId);
+  if (dish) {
+    return next();
+  }
+  next({ status: 404, message: "No matching dish is found." });
 }
 
 // TODO: Implement the /dishes handlers needed to make the tests pass
@@ -71,6 +76,12 @@ const create = async (req, res) => {
   res.status(201).json({ data: newDish });
 };
 
+function read(req, res, next) {
+  const { dishId } = req.params;
+  const dish = dishes.find((dish) => dish.id === dishId);
+  res.status(200).json({ data: dish });
+}
+
 module.exports = {
   list,
   create: [
@@ -78,8 +89,9 @@ module.exports = {
     hasProperty("description"),
     hasProperty("price"),
     hasProperty("image_url"),
-    propertyNotEmpty(),
-    priceLessThanZero(),
+    propertyNotEmpty,
+    priceLessThanZero,
     create,
   ],
+  read: [checkDishId, read],
 };

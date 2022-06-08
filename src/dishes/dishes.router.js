@@ -3,6 +3,6 @@ const dishesController = require("./dishes.controller");
 
 // TODO: Implement the /dishes routes needed to make the tests pass
 router.route("/").get(dishesController.list).post(dishesController.create);
-//router.route("/:dishID");
+router.route("/:dishId").get(dishesController.read);
 
 module.exports = router;
