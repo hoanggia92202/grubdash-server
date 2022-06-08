@@ -17,6 +17,37 @@ function hasProperty(validPropertyName){
     }
 }
 
+function propertyNotEmpty() {
+  return function (req, res, next) {
+    const validPropertyName = ["name", "description", "price", "image_url"];
+    const propertyList = req.body.data;
+    validPropertyName.forEach((propName) => {
+      if (!propertyList[propName]) {
+        return next({
+          status: 400,
+          message: `Dish must include a ${propName}`,
+        });
+      }
+    });
+    next();
+  };
+}
+
+function priceLessThanZero() {
+  return function (req, res, next) {
+    const {
+      data: { price },
+    } = req.body;
+    if (price < 0) {
+      return next({
+        status: 400,
+        message: `Dish must have a price that is an integer greater than 0`,
+      });
+    }
+    next();
+  };
+}
+
 // TODO: Implement the /dishes handlers needed to make the tests pass
 const list = (req, res) => {
   res.json({ data: dishes });
@@ -37,7 +68,7 @@ const create = async (req, res) => {
   };
 
   dishes.push(newDish);
-  res.json({ data: newDish });
+  res.status(201).json({ data: newDish });
 };
 
 module.exports = {
@@ -47,6 +78,8 @@ module.exports = {
     hasProperty("description"),
     hasProperty("price"),
     hasProperty("image_url"),
+    propertyNotEmpty(),
+    priceLessThanZero(),
     create,
   ],
 };
