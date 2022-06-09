@@ -5,6 +5,7 @@ router.route("/").get(dishesController.list).post(dishesController.create);
 router
   .route("/:dishId")
   .get(dishesController.read)
-  .put(dishesController.update);
+  .put(dishesController.update)
+  //.delete(dishesController.destroy);
 
 module.exports = router;

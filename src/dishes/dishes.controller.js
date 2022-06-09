@@ -28,7 +28,6 @@ const create = async (req, res) => {
   const {
     data: { name, description, image_url, price },
   } = req.body;
-
   const newDish = {
     id: iD,
     name,
@@ -36,7 +35,6 @@ const create = async (req, res) => {
     image_url,
     price,
   };
-
   dishes.push(newDish);
   res.status(201).json({ data: newDish });
 };
@@ -62,6 +60,21 @@ const update = (req, res, next) => {
   res.status(200).json({ data: dish });
 };
 
+// delete a dish
+const destroy = (req, res, next) => {
+  const { dishId } = req.params;
+  const dish = dishes.find((dish) => dish.id === dishId);
+};
+
+function hasDish(req, res, next) {
+  const { dishId } = req.params;
+  const dish = dishes.find((dish) => dish.id === dishId);
+  if (!dish) {
+    return next({ status: 404, message: `order ${dishId} cannot be found.` });
+  }
+  next();
+}
+
 module.exports = {
   list,
   create: [
@@ -75,6 +88,7 @@ module.exports = {
   ],
   read: [checkDishId, read],
   update: [
+    hasDish,
     hasProperty("name"),
     hasProperty("description"),
     hasProperty("price"),
