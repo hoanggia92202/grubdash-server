@@ -1,4 +1,15 @@
+// validation middleware
 const path = require("path");
+const {
+  hasProperty,
+  propertyNotEmpty,
+} = require("../AppMiddleware/midlleware");
+const {
+  priceLessThanZero,
+  priceNaN,
+  checkDishId,
+  hasRequestId,
+} = require("./dishesMiddleware");
 
 // Use the existing dishes data
 const dishes = require(path.resolve("src/data/dishes-data"));
@@ -6,58 +17,12 @@ const dishes = require(path.resolve("src/data/dishes-data"));
 // Use this function to assign ID's when necessary
 const nextId = require("../utils/nextId");
 
-// middleware handler
-function hasProperty(validPropertyName){
-    return function(req, res, next){
-        const propertyList = Object.keys(req.body.data);
-        if(propertyList.includes(validPropertyName)){
-            return next();
-        }
-        next({status: 400, message: `Dish must include a ${validPropertyName}`});
-    }
-}
-
-function propertyNotEmpty(req, res, next) {
-  const validPropertyName = ["name", "description", "price", "image_url"];
-  const propertyList = req.body.data;
-  validPropertyName.forEach((propName) => {
-    if (!propertyList[propName]) {
-      return next({
-        status: 400,
-        message: `Dish must include a ${propName}`,
-      });
-    }
-  });
-  next();
-}
-
-function priceLessThanZero(req, res, next) {
-  const {
-    data: { price },
-  } = req.body;
-  if (price < 0) {
-    return next({
-      status: 400,
-      message: `Dish must have a price that is an integer greater than 0`,
-    });
-  }
-  next();
-}
-
-function checkDishId(req, res, next) {
-  const { dishId } = req.params;
-  const dish = dishes.find((dish) => dish.id === dishId);
-  if (dish) {
-    return next();
-  }
-  next({ status: 404, message: "No matching dish is found." });
-}
-
-// TODO: Implement the /dishes handlers needed to make the tests pass
+// list all dishes
 const list = (req, res) => {
   res.json({ data: dishes });
 };
 
+// create a dish
 const create = async (req, res) => {
   const iD = await nextId();
   const {
@@ -76,11 +41,26 @@ const create = async (req, res) => {
   res.status(201).json({ data: newDish });
 };
 
-function read(req, res, next) {
+// get a dish
+const read = (req, res, next) => {
   const { dishId } = req.params;
   const dish = dishes.find((dish) => dish.id === dishId);
   res.status(200).json({ data: dish });
-}
+};
+
+// update a dish
+const update = (req, res, next) => {
+  const {
+    data: { name, description, image_url, price },
+  } = req.body;
+  const { dishId } = req.params;
+  const dish = dishes.find((dish) => dish.id === dishId);
+  dish.name = name;
+  dish.description = description;
+  dish.image_url = image_url;
+  dish.price = price;
+  res.status(200).json({ data: dish });
+};
 
 module.exports = {
   list,
@@ -89,9 +69,22 @@ module.exports = {
     hasProperty("description"),
     hasProperty("price"),
     hasProperty("image_url"),
-    propertyNotEmpty,
+    propertyNotEmpty(["name", "description", "price", "image_url"]),
     priceLessThanZero,
     create,
   ],
   read: [checkDishId, read],
+  update: [
+    hasProperty("name"),
+    hasProperty("description"),
+    hasProperty("price"),
+    //propertyNotEmpty,
+    propertyNotEmpty(["name", "description", "price", "image_url"]),
+    priceLessThanZero,
+    priceNaN,
+    //hasProperty("image_url"),
+    //checkDishId,
+    hasRequestId,
+    update,
+  ],
 };
