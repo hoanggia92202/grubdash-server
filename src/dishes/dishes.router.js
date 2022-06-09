@@ -1,11 +1,12 @@
 const router = require("express").Router();
 const dishesController = require("./dishes.controller");
+const methodNotAllowed = require("../errors/methodNotAllowed");
 
 router.route("/").get(dishesController.list).post(dishesController.create);
 router
   .route("/:dishId")
   .get(dishesController.read)
   .put(dishesController.update)
-  //.delete(dishesController.destroy);
+  .all(methodNotAllowed);
 
 module.exports = router;
