@@ -27,12 +27,9 @@ const read = (req, res, next) => {
 
 const create = async (req, res, next) => {
   const iD = await nextId();
-
   const {
     data: { deliverTo, mobileNumber, status, dishes },
   } = req.body;
-  const { id, name, description, image_url, price, quantity } = dishes[0];
-
   const newOrder = {
     id: iD,
     deliverTo,
@@ -40,14 +37,21 @@ const create = async (req, res, next) => {
     status,
     dishes,
   };
-
   orders.push(newOrder);
-  //console.log("order", deliverTo, mobileNumber, status, dishes);
   res.status(201).send({ data: newOrder });
 };
 
 const update = (req, res, next) => {
-  next();
+  const { orderId } = req.params;
+  const {
+    data: { deliverTo, mobileNumber, status, dishes },
+  } = req.body;
+  const order = orders.find((order) => order.id === orderId);
+  order.deliverTo = deliverTo;
+  order.mobileNumber = mobileNumber;
+  order.status = status;
+  order.dishes = [...dishes];
+  res.status(200).json({ data: order });
 };
 
 const destroy = (req, res, next) => {
