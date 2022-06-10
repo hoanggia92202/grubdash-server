@@ -8,14 +8,14 @@ function hasProperty(validPropertyName) {
   };
 }
 
-function propertyNotEmpty(validPropertyName) {
+function propertyNotEmpty(validPropertyList) {
   return function (req, res, next) {
     const propertyList = req.body.data;
-    validPropertyName.forEach((propName) => {
+    validPropertyList.forEach((propName) => {
       if (!propertyList[propName]) {
         return next({
           status: 400,
-          message: `Dish must include a ${propName}`,
+          message: `Dish must include a ${propName} value`,
         });
       }
     });

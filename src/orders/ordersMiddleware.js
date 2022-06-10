@@ -1,27 +1,24 @@
 const path = require("path");
 const orders = require(path.resolve("src/data/orders-data"));
 
-const hasDishProperty = (req, res, next) => {
-  const propertyList = Object.keys(req.body.data);
-  if (propertyList.includes("dishes")) {
-    return next();
-  }
-  next({ status: 400, message: `Order must include a dish` });
-};
-
 const hasOrder = (req, res, next) => {
   const { orderId } = req.params;
   const order = orders.find((order) => order.id === orderId);
-  if (!order) {
-    return next({ status: 404, message: `order ${orderId} cannot be found.` });
+  // set response locals orderId
+  res.locals.orderId = orderId;
+  // set response locals order
+  res.locals.order = order;
+  if (order) {
+    return next();
   }
-  next();
+  return next({
+    status: 404,
+    message: `order ${res.locals.orderId} cannot be found.`,
+  });
 };
 
 const isPending = (req, res, next) => {
-  const { orderId } = req.params;
-  const order = orders.find((order) => order.id === orderId);
-  if (order.status !== "pending") {
+  if (res.locals.order.status !== "pending") {
     return next({
       status: 400,
       message: "An order cannot be deleted unless it is pending",
@@ -30,7 +27,7 @@ const isPending = (req, res, next) => {
   next();
 };
 
-const dishIsAnArray = (req, res, next) => {
+const dishesIsAnArray = (req, res, next) => {
   const {
     data: { dishes },
   } = req.body;
@@ -53,7 +50,7 @@ const dishNotEmpty = (req, res, next) => {
   next();
 };
 
-const hasQuantityProperty = (req, res, next) => {
+const quantityHasValue = (req, res, next) => {
   const {
     data: { dishes },
   } = req.body;
@@ -83,12 +80,40 @@ const quantityNaN = (req, res, next) => {
   next();
 };
 
+function idMismatch(req, res, next) {
+  const {
+    data: { id },
+  } = req.body;
+  if (id && res.locals.orderId !== id) {
+    return next({
+      status: 400,
+      message: `Order id does not match route id. Order: ${id}, Route: ${res.locals.orderId}.`,
+    });
+  }
+  next();
+}
+
+const statusIsInvalid = (req, res, next) => {
+  const {
+    data: { status },
+  } = req.body;
+  if (status === "invalid") {
+    return next({
+      status: 400,
+      message:
+        "Order must have a status of pending, preparing, out-for-delivery, delivered.",
+    });
+  }
+  next();
+};
+
 module.exports = {
-  hasDishProperty,
   hasOrder,
   isPending,
-  dishIsAnArray,
+  dishesIsAnArray,
   dishNotEmpty,
-  hasQuantityProperty,
+  quantityHasValue,
   quantityNaN,
+  idMismatch,
+  statusIsInvalid,
 };

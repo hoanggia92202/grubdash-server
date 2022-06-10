@@ -1,14 +1,18 @@
-// validation middleware
 const path = require("path");
+
+// import global middleware
 const {
   hasProperty,
   propertyNotEmpty,
-} = require("../AppMiddleware/midlleware");
+} = require("../GlobalMiddleware/globalMiddleware");
+
+// import local middleware
 const {
   priceLessThanZero,
   priceNaN,
   checkDishId,
   hasRequestId,
+  hasDish,
 } = require("./dishesMiddleware");
 
 // Use the existing dishes data
@@ -41,9 +45,7 @@ const create = async (req, res) => {
 
 // get a dish
 const read = (req, res, next) => {
-  const { dishId } = req.params;
-  const dish = dishes.find((dish) => dish.id === dishId);
-  res.status(200).json({ data: dish });
+  res.status(200).json({ data: res.locals.dish });
 };
 
 // update a dish
@@ -51,29 +53,12 @@ const update = (req, res, next) => {
   const {
     data: { name, description, image_url, price },
   } = req.body;
-  const { dishId } = req.params;
-  const dish = dishes.find((dish) => dish.id === dishId);
-  dish.name = name;
-  dish.description = description;
-  dish.image_url = image_url;
-  dish.price = price;
-  res.status(200).json({ data: dish });
+  res.locals.dish.name = name;
+  res.locals.dish.description = description;
+  res.locals.dish.image_url = image_url;
+  res.locals.dish.price = price;
+  res.status(200).json({ data: res.locals.dish });
 };
-
-// delete a dish
-const destroy = (req, res, next) => {
-  const { dishId } = req.params;
-  const dish = dishes.find((dish) => dish.id === dishId);
-};
-
-function hasDish(req, res, next) {
-  const { dishId } = req.params;
-  const dish = dishes.find((dish) => dish.id === dishId);
-  if (!dish) {
-    return next({ status: 404, message: `order ${dishId} cannot be found.` });
-  }
-  next();
-}
 
 module.exports = {
   list,
@@ -86,18 +71,15 @@ module.exports = {
     priceLessThanZero,
     create,
   ],
-  read: [checkDishId, read],
+  read: [hasDish, checkDishId, read],
   update: [
     hasDish,
     hasProperty("name"),
     hasProperty("description"),
     hasProperty("price"),
-    //propertyNotEmpty,
     propertyNotEmpty(["name", "description", "price", "image_url"]),
     priceLessThanZero,
     priceNaN,
-    //hasProperty("image_url"),
-    //checkDishId,
     hasRequestId,
     update,
   ],

@@ -1,17 +1,21 @@
 const path = require("path");
+
+// import global middleware
 const {
   hasProperty,
   propertyNotEmpty,
-} = require("../AppMiddleware/midlleware");
+} = require("../GlobalMiddleware/globalMiddleware");
 
+// import local middleware
 const {
-  dishIsAnArray,
+  dishesIsAnArray,
   dishNotEmpty,
-  hasQuantityProperty,
+  quantityHasValue,
   quantityNaN,
-  hasDishProperty,
   isPending,
   hasOrder,
+  idMismatch,
+  statusIsInvalid,
 } = require("./ordersMiddleware");
 
 // Use the existing order data
@@ -21,23 +25,21 @@ const orders = require(path.resolve("src/data/orders-data"));
 const nextId = require("../utils/nextId");
 
 // list all orders
-const list = (req, res, next) => {
+const list = (req, res) => {
   res.status(200).json({ data: orders });
 };
 
 // get an order
 const read = (req, res, next) => {
-  const { orderId } = req.params;
-  const order = orders.find((order) => order.id === orderId);
-  if (order) {
-    res.status(200).json({ data: order });
+  if (res.locals.order) {
+    res.status(200).json({ data: res.locals.order });
   }
   next({ status: 404, message: "No matching order is found." });
 };
 
 // create an order
-const create = async (req, res, next) => {
-  const iD = await nextId();
+const create = (req, res) => {
+  const iD = nextId();
   const {
     data: { deliverTo, mobileNumber, status, dishes },
   } = req.body;
@@ -53,86 +55,50 @@ const create = async (req, res, next) => {
 };
 
 // update an order
-const update = (req, res, next) => {
-  const { orderId } = req.params;
+const update = (req, res) => {
   const {
     data: { deliverTo, mobileNumber, status, dishes },
   } = req.body;
-  const order = orders.find((order) => order.id === orderId);
-  order.deliverTo = deliverTo;
-  order.mobileNumber = mobileNumber;
-  order.status = status;
-  order.dishes = [...dishes];
-  res.status(200).json({ data: order });
+  res.locals.order.deliverTo = deliverTo;
+  res.locals.order.mobileNumber = mobileNumber;
+  res.locals.order.status = status;
+  res.locals.order.dishes = [...dishes];
+  res.status(200).json({ data: res.locals.order });
 };
 
 // delete an order
-const destroy = (req, res, next) => {
-  const { orderId } = req.params;
-  const order = orders.find((order) => order.id === orderId);
-  const orderIndex = orders.findIndex((order) => order.id === orderId);
+const destroy = (req, res) => {
+  const orderIndex = orders.findIndex(
+    (order) => order.id === res.locals.orderId
+  );
   orders.splice(orderIndex, 1);
   res.sendStatus(204);
 };
 
-function isStatusDelivered(req, res, next) {
-  const { orderId } = req.params;
-  const order = orders.find((order) => order.id === orderId);
-  if (order.status === "delivered") {
-    return next({
-      status: 404,
-      message: "A delivered order cannot be changed",
-    });
-  }
-  next();
-}
-
-function idMismatch(req, res, next) {
-  const { orderId } = req.params;
-  const {
-    data: { id },
-  } = req.body;
-  if (id && orderId !== id) {
-    return next({
-      status: 400,
-      message: `Order id does not match route id. Order: ${id}, Route: ${orderId}.`,
-    });
-  }
-  next();
-}
-
 module.exports = {
   list,
-  read,
+  read: [hasOrder, read],
   create: [
     hasProperty("deliverTo"),
     hasProperty("mobileNumber"),
-
-    //hasProperty("dishes"),
-    //hasDishProperty,
     propertyNotEmpty(["deliverTo", "mobileNumber"]),
-    dishIsAnArray,
+    dishesIsAnArray,
     dishNotEmpty,
+    quantityHasValue,
     quantityNaN,
-    hasQuantityProperty,
     create,
   ],
   update: [
-    //isStatusDelivered,
     hasOrder,
     idMismatch,
-
     hasProperty("deliverTo"),
     hasProperty("mobileNumber"),
-    hasProperty("status"),
+    statusIsInvalid,
     propertyNotEmpty(["status", "deliverTo", "mobileNumber"]),
-
-    dishIsAnArray,
+    dishesIsAnArray,
     dishNotEmpty,
-    hasQuantityProperty,
+    quantityHasValue,
     quantityNaN,
-    hasDishProperty,
-    // isStatusDelivered,
     update,
   ],
   destroy: [hasOrder, isPending, destroy],
